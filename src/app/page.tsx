@@ -26,7 +26,7 @@ export default async function Home() {
               Save the posts you keep coming back to.
             </h1>
             <p className="max-w-xl text-lg leading-8 text-zinc-400">
-              Create Instagram-style collections for Instagram and TikTok links, keep them private, or publish a curated board.
+              Create Instagram-style collections for Instagram, TikTok, and Google Maps links, keep them private, or publish a curated board.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

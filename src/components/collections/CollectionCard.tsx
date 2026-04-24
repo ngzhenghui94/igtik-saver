@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { Bookmark, Globe2, Lock } from "lucide-react";
+import { Bookmark, Camera, Globe2, Lock, MapPin, Music2 } from "lucide-react";
+
+import type { LinkPlatform } from "@/generated/prisma/enums";
 
 type CollectionCardProps = {
   id: string;
@@ -9,7 +11,8 @@ type CollectionCardProps = {
   links: {
     id: string;
     title: string;
-    platform: "INSTAGRAM" | "TIKTOK";
+    platform: LinkPlatform;
+    thumbnailUrl: string | null;
   }[];
   count: number;
 };
@@ -25,16 +28,26 @@ export function CollectionCard({ id, name, description, isPublic, links, count }
       <div className="grid aspect-square grid-cols-2 grid-rows-2 gap-px bg-white/10">
         {Array.from({ length: 4 }).map((_, index) => {
           const link = tiles[index];
+          const imageUrl = getSafeImageUrl(link?.thumbnailUrl ?? null);
+          const Icon = link?.platform === "INSTAGRAM" ? Camera : link?.platform === "TIKTOK" ? Music2 : MapPin;
 
           return (
             <div
               key={link?.id ?? index}
-              className="relative flex items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.35),transparent_26%),linear-gradient(135deg,rgba(244,63,94,0.55),rgba(20,184,166,0.28),rgba(24,24,27,0.9))]"
+              className={`relative flex items-center justify-center overflow-hidden ${
+                imageUrl
+                  ? "bg-cover bg-center"
+                  : "bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.35),transparent_26%),linear-gradient(135deg,rgba(244,63,94,0.55),rgba(20,184,166,0.28),rgba(24,24,27,0.9))]"
+              }`}
+              style={imageUrl ? { backgroundImage: `linear-gradient(180deg, rgba(7, 9, 13, 0.08), rgba(7, 9, 13, 0.72)), url("${cssUrl(imageUrl)}")` } : undefined}
             >
               {link ? (
-                <span className="line-clamp-3 px-4 text-center text-xs font-semibold uppercase tracking-wide text-white drop-shadow">
-                  {link.title}
-                </span>
+                <>
+                  <Icon className="absolute left-3 top-3 text-white/75 drop-shadow" size={15} aria-hidden />
+                  <span className="line-clamp-3 px-4 text-center text-xs font-semibold uppercase tracking-wide text-white drop-shadow">
+                    {link.title}
+                  </span>
+                </>
               ) : (
                 <Bookmark className="text-white/35" size={26} aria-hidden />
               )}
@@ -57,4 +70,26 @@ export function CollectionCard({ id, name, description, isPublic, links, count }
       </div>
     </Link>
   );
+}
+
+function getSafeImageUrl(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value);
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function cssUrl(value: string) {
+  return value.replace(/["\\]/g, "\\$&").replace(/\n|\r|\f/g, "");
 }

@@ -29,6 +29,7 @@ export default async function DashboardPage() {
           id: true,
           title: true,
           platform: true,
+          thumbnailUrl: true,
         },
       },
       _count: {
@@ -77,7 +78,7 @@ export default async function DashboardPage() {
           ) : (
             <div className="border border-dashed border-white/15 bg-white/[0.03] p-8 text-zinc-400">
               <h2 className="text-lg font-semibold text-white">No collections yet</h2>
-              <p className="mt-2 max-w-lg text-sm leading-6">Create a collection first, then save Instagram or TikTok links into it.</p>
+              <p className="mt-2 max-w-lg text-sm leading-6">Create a collection first, then save Instagram, TikTok, or Google Maps links into it.</p>
             </div>
           )}
         </div>

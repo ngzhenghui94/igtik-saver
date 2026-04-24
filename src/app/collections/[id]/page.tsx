@@ -87,19 +87,28 @@ export default async function CollectionPage({ params, searchParams }: Collectio
             </div>
 
             {query.error === "unsupported" ? (
-              <p className="border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">Only Instagram and TikTok links are supported.</p>
+              <p className="border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">Only Instagram, TikTok, and Google Maps links are supported.</p>
             ) : null}
 
             {collection.links.length ? (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {collection.links.map((link) => (
-                  <SavedLinkCard key={link.id} title={link.title} note={link.note} url={link.url} platform={link.platform} createdAt={link.createdAt} />
+                  <SavedLinkCard
+                    key={link.id}
+                    title={link.title}
+                    note={link.note}
+                    url={link.url}
+                    platform={link.platform}
+                    thumbnailUrl={link.thumbnailUrl}
+                    authorHandle={link.authorHandle}
+                    createdAt={link.createdAt}
+                  />
                 ))}
               </div>
             ) : (
               <div className="border border-dashed border-white/15 bg-white/[0.03] p-8 text-zinc-400">
                 <h2 className="text-lg font-semibold text-white">No links saved here</h2>
-                <p className="mt-2 max-w-lg text-sm leading-6">Save an Instagram or TikTok URL to start filling this collection.</p>
+                <p className="mt-2 max-w-lg text-sm leading-6">Save an Instagram, TikTok, or Google Maps URL to start filling this collection.</p>
               </div>
             )}
           </div>

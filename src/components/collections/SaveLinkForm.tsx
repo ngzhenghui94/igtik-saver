@@ -15,14 +15,14 @@ export function SaveLinkForm({ collections, selectedCollectionId }: SaveLinkForm
     <form action={saveLinkAction} className="space-y-4 border border-white/10 bg-white/[0.04] p-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-white">
         <LinkIcon size={16} aria-hidden />
-        Save a social link
+        Save a link
       </div>
       <div className="grid gap-3 md:grid-cols-[1fr_1fr]">
         <input
           name="url"
           type="url"
           required
-          placeholder="https://www.instagram.com/reel/..."
+          placeholder="Instagram, TikTok, or Google Maps URL"
           className="h-11 border border-white/10 bg-black/40 px-3 text-sm outline-none transition focus:border-sky-400"
         />
         <select

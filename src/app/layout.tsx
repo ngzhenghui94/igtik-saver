@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Saved Collections",
-  description: "Collect Instagram and TikTok links into private or public boards.",
+  description: "Collect Instagram, TikTok, and Google Maps links into private or public boards.",
 };
 
 export default function RootLayout({

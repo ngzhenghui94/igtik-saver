@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+.playwright-mcp/
+saved-collections-home.png
 
 # next.js
 /.next/

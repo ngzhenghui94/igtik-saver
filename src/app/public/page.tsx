@@ -18,6 +18,7 @@ export default async function PublicCollectionsPage() {
           id: true,
           title: true,
           platform: true,
+          thumbnailUrl: true,
         },
       },
       _count: {

@@ -26,7 +26,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
             Saved Collections
           </Link>
           <h1 className="mt-6 text-3xl font-semibold">Create your account</h1>
-          <p className="mt-2 text-sm leading-6 text-zinc-400">Start collecting Instagram and TikTok links into private or public boards.</p>
+          <p className="mt-2 text-sm leading-6 text-zinc-400">Start collecting Instagram, TikTok, and Google Maps links into private or public boards.</p>
         </div>
         {params.error === "exists" ? <p className="border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">That email already has an account.</p> : null}
         {params.error === "invalid" ? <p className="border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">Check your name, email, and password.</p> : null}

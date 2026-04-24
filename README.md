@@ -1,6 +1,6 @@
 # Saved Collections
 
-A Next.js app for saving Instagram and TikTok links into private or public collections.
+A Next.js app for saving Instagram, TikTok, and Google Maps links into private or public collections.
 
 ## Stack
 

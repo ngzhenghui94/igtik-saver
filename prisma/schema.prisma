@@ -15,6 +15,7 @@ datasource db {
 enum LinkPlatform {
   INSTAGRAM
   TIKTOK
+  GOOGLE_MAPS
 }
 
 model User {

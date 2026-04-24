@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { parseSocialLink, platformLabel } from "@/lib/link-utils";
+import { fetchLinkPreview } from "@/lib/link-preview";
 import { prisma } from "@/lib/prisma";
 import { uniqueSlug } from "@/lib/slug";
 import { collectionSchema, savedLinkSchema, signupSchema } from "@/lib/validation";
@@ -116,7 +117,8 @@ export async function saveLinkAction(formData: FormData) {
     redirect(`/collections/${collection.id}?error=unsupported`);
   }
 
-  const title = parsed.data.title || `${platformLabel(socialLink.platform)} save`;
+  const preview = await fetchLinkPreview(parsed.data.url, socialLink.platform);
+  const title = parsed.data.title || preview.title || `${platformLabel(socialLink.platform)} save`;
 
   await prisma.savedLink.upsert({
     where: {
@@ -133,11 +135,15 @@ export async function saveLinkAction(formData: FormData) {
       url: parsed.data.url,
       title,
       note: parsed.data.note,
+      thumbnailUrl: preview.thumbnailUrl,
+      authorHandle: preview.authorHandle,
     },
     update: {
       title,
       note: parsed.data.note,
       url: parsed.data.url,
+      thumbnailUrl: preview.thumbnailUrl ?? undefined,
+      authorHandle: preview.authorHandle ?? undefined,
     },
   });
 
