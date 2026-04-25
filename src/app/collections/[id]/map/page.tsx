@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/current-user";
 import { LinkPlatform } from "@/generated/prisma/enums";
+import { buildCollectionMapData } from "@/lib/map-data";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 
@@ -28,8 +29,6 @@ export default async function CollectionMapPage({ params }: CollectionMapPagePro
       links: {
         where: {
           platform: LinkPlatform.GOOGLE_MAPS,
-          latitude: { not: null },
-          longitude: { not: null },
         },
         orderBy: { createdAt: "desc" },
       },
@@ -46,29 +45,32 @@ export default async function CollectionMapPage({ params }: CollectionMapPagePro
     redirect("/login");
   }
 
-  const totalMapsLinks = await prisma.savedLink.count({
-    where: { collectionId: collection.id, platform: LinkPlatform.GOOGLE_MAPS },
+  const layerCollections = await prisma.collection.findMany({
+    where: {
+      ownerId: collection.ownerId,
+      ...(isOwner ? {} : { isPublic: true }),
+    },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      links: {
+        where: {
+          platform: LinkPlatform.GOOGLE_MAPS,
+        },
+        orderBy: { createdAt: "desc" },
+      },
+    },
   });
 
-  const pins = collection.links
-    .filter((l): l is typeof l & { latitude: number; longitude: number } =>
-      l.latitude !== null && l.longitude !== null
-    )
-    .map((link) => ({
-      id: link.id,
-      latitude: link.latitude,
-      longitude: link.longitude,
-      title: link.title,
-      collectionName: collection.name,
-      collectionId: collection.id,
-      url: link.url,
-      note: link.note,
-    }));
+  const sortedLayerCollections = layerCollections.toSorted((a, b) => {
+    if (a.id === collection.id) return -1;
+    if (b.id === collection.id) return 1;
+    return 0;
+  });
 
-  const unmapped = totalMapsLinks - pins.length;
+  const { layers, pins, totalMapsLinks, unmapped } = buildCollectionMapData(sortedLayerCollections);
 
   return (
-    <AppShell authenticated={Boolean(user)} currentPath={isOwner ? "dashboard" : "public"}>
+    <AppShell authenticated={Boolean(user)} currentPath="map">
       <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
         <Link
           href={`/collections/${collection.id}`}
@@ -95,7 +97,7 @@ export default async function CollectionMapPage({ params }: CollectionMapPagePro
             <p className="text-sm text-muted-foreground">
               {pins.length === 0
                 ? "No pinned places yet."
-                : `${pins.length} of ${totalMapsLinks} Maps ${totalMapsLinks === 1 ? "save" : "saves"} mapped.`}
+                : `${pins.length} of ${totalMapsLinks} Maps ${totalMapsLinks === 1 ? "save" : "saves"} mapped across ${layers.length} ${layers.length === 1 ? "collection" : "collections"}.`}
               {unmapped > 0
                 ? ` ${unmapped} couldn't be located — short links and place-only URLs may not include coordinates.`
                 : ""}
@@ -109,7 +111,7 @@ export default async function CollectionMapPage({ params }: CollectionMapPagePro
         </header>
 
         <div className="mt-8">
-          <MapExplorer pins={pins} />
+          <MapExplorer pins={pins} layers={layers} />
         </div>
       </section>
     </AppShell>

@@ -192,6 +192,13 @@ export function extractCoordinates(value: string): Coordinates | null {
     return null;
   }
 
+  for (const segment of pathSegments(url)) {
+    const dataMatch = segment.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+    if (dataMatch) {
+      return toCoordinates(dataMatch[1], dataMatch[2]);
+    }
+  }
+
   const atMatch = url.pathname.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
 
   if (atMatch) {
@@ -225,13 +232,6 @@ export function extractCoordinates(value: string): Coordinates | null {
     if (coordinatePattern.test(lat?.trim() ?? "") && coordinatePattern.test(lng?.trim() ?? "")) {
       const coords = toCoordinates(lat, lng);
       if (coords) return coords;
-    }
-  }
-
-  for (const segment of pathSegments(url)) {
-    const dataMatch = segment.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
-    if (dataMatch) {
-      return toCoordinates(dataMatch[1], dataMatch[2]);
     }
   }
 

@@ -1,4 +1,5 @@
-import { FolderPlus, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { FolderPlus, MapPin, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/AppShell";
@@ -6,6 +7,7 @@ import { CollectionCard } from "@/components/collections/CollectionCard";
 import { CreateCollectionForm } from "@/components/collections/CreateCollectionForm";
 import { SaveLinkForm } from "@/components/collections/SaveLinkForm";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
@@ -62,6 +64,12 @@ export default async function DashboardPage() {
                 : `${collections.length} ${collections.length === 1 ? "collection" : "collections"} · ${totalLinks} saved · ${publicCount} public`}
             </p>
           </div>
+          {collections.length ? (
+            <Link href="/dashboard/map" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <MapPin aria-hidden />
+              Map view
+            </Link>
+          ) : null}
         </div>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">

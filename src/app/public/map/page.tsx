@@ -7,42 +7,27 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { LinkPlatform } from "@/generated/prisma/enums";
 import { getCurrentUser } from "@/lib/current-user";
+import { buildCollectionMapData } from "@/lib/map-data";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function PublicMapPage() {
-  const [user, links] = await Promise.all([
+  const [user, collections] = await Promise.all([
     getCurrentUser(),
-    prisma.savedLink.findMany({
-      where: {
-        platform: LinkPlatform.GOOGLE_MAPS,
-        latitude: { not: null },
-        longitude: { not: null },
-        collection: { isPublic: true },
-      },
+    prisma.collection.findMany({
+      where: { isPublic: true },
       orderBy: { createdAt: "desc" },
-      take: 500,
       include: {
-        collection: { select: { id: true, name: true } },
+        links: {
+          where: { platform: LinkPlatform.GOOGLE_MAPS },
+          orderBy: { createdAt: "desc" },
+        },
       },
     }),
   ]);
 
-  const pins = links
-    .filter((l): l is typeof l & { latitude: number; longitude: number } =>
-      l.latitude !== null && l.longitude !== null
-    )
-    .map((link) => ({
-      id: link.id,
-      latitude: link.latitude,
-      longitude: link.longitude,
-      title: link.title,
-      collectionName: link.collection.name,
-      collectionId: link.collection.id,
-      url: link.url,
-      note: link.note,
-    }));
+  const { layers, pins } = buildCollectionMapData(collections);
 
   return (
     <AppShell authenticated={Boolean(user)} currentPath="map">
@@ -75,7 +60,7 @@ export default async function PublicMapPage() {
         </header>
 
         <div className="mt-8">
-          <MapExplorer pins={pins} withCollectionLabel />
+          <MapExplorer pins={pins} layers={layers} withCollectionLabel />
         </div>
       </section>
     </AppShell>

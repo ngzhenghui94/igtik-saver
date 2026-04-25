@@ -38,7 +38,11 @@ export function AppShell({ children, authenticated, currentPath = "other" }: App
             <NavLink href="/public" active={currentPath === "public"} icon={<Globe2 />}>
               Explore
             </NavLink>
-            <NavLink href="/public/map" active={currentPath === "map"} icon={<MapPin />}>
+            <NavLink
+              href={authenticated ? "/dashboard/map" : "/public/map"}
+              active={currentPath === "map"}
+              icon={<MapPin />}
+            >
               Map
             </NavLink>
             {authenticated ? (
