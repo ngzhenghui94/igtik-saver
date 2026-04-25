@@ -4,7 +4,8 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { parseSocialLink, platformLabel } from "@/lib/link-utils";
+import { extractCoordinates, parseSocialLink, platformLabel } from "@/lib/link-utils";
+import { LinkPlatform } from "@/generated/prisma/enums";
 import { fetchLinkPreview } from "@/lib/link-preview";
 import { prisma } from "@/lib/prisma";
 import { uniqueSlug } from "@/lib/slug";
@@ -120,6 +121,12 @@ export async function saveLinkAction(formData: FormData) {
   const preview = await fetchLinkPreview(parsed.data.url, socialLink.platform);
   const title = parsed.data.title || preview.title || `${platformLabel(socialLink.platform)} save`;
 
+  const coordinates =
+    socialLink.platform === LinkPlatform.GOOGLE_MAPS
+      ? extractCoordinates(parsed.data.url) ??
+        (preview.resolvedUrl ? extractCoordinates(preview.resolvedUrl) : null)
+      : null;
+
   await prisma.savedLink.upsert({
     where: {
       collectionId_normalizedUrl: {
@@ -137,6 +144,8 @@ export async function saveLinkAction(formData: FormData) {
       note: parsed.data.note,
       thumbnailUrl: preview.thumbnailUrl,
       authorHandle: preview.authorHandle,
+      latitude: coordinates?.latitude,
+      longitude: coordinates?.longitude,
     },
     update: {
       title,
@@ -144,11 +153,78 @@ export async function saveLinkAction(formData: FormData) {
       url: parsed.data.url,
       thumbnailUrl: preview.thumbnailUrl ?? undefined,
       authorHandle: preview.authorHandle ?? undefined,
+      latitude: coordinates?.latitude ?? undefined,
+      longitude: coordinates?.longitude ?? undefined,
     },
   });
 
   revalidatePath("/dashboard");
   revalidatePath(`/collections/${collection.id}`);
+  revalidatePath("/public");
+}
+
+export async function deleteCollectionAction(formData: FormData) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const id = value(formData, "collectionId");
+
+  if (!id) {
+    redirect("/dashboard?error=collection");
+  }
+
+  await prisma.collection.deleteMany({
+    where: {
+      id,
+      ownerId: user.id,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/collections/${id}`);
+  revalidatePath("/public");
+}
+
+export async function deleteSavedLinkAction(formData: FormData) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const id = value(formData, "savedLinkId");
+
+  if (!id) {
+    redirect("/dashboard?error=link");
+  }
+
+  const savedLink = await prisma.savedLink.findFirst({
+    where: {
+      id,
+      ownerId: user.id,
+    },
+    select: {
+      collectionId: true,
+    },
+  });
+
+  if (!savedLink) {
+    revalidatePath("/dashboard");
+    return;
+  }
+
+  await prisma.savedLink.deleteMany({
+    where: {
+      id,
+      ownerId: user.id,
+    },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/collections/${savedLink.collectionId}`);
   revalidatePath("/public");
 }
 

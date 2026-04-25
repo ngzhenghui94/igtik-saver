@@ -1,12 +1,19 @@
 import Link from "next/link";
-import { ArrowLeft, Globe2, Lock } from "lucide-react";
+import { ArrowLeft, BookmarkPlus, Globe2, Lock, MapPin } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 
 import { toggleCollectionVisibilityAction } from "@/app/actions";
+import { AppShell } from "@/components/AppShell";
 import { SavedLinkCard } from "@/components/collections/SavedLinkCard";
 import { SaveLinkForm } from "@/components/collections/SaveLinkForm";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/current-user";
+import { LinkPlatform } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -23,15 +30,8 @@ export default async function CollectionPage({ params, searchParams }: Collectio
   const collection = await prisma.collection.findUnique({
     where: { id },
     include: {
-      owner: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      links: {
-        orderBy: { createdAt: "desc" },
-      },
+      owner: { select: { id: true, name: true } },
+      links: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -53,41 +53,64 @@ export default async function CollectionPage({ params, searchParams }: Collectio
       })
     : [];
 
+  const hasMappableLinks = collection.links.some(
+    (link) => link.platform === LinkPlatform.GOOGLE_MAPS && link.latitude !== null && link.longitude !== null,
+  );
+
+  const backHref = isOwner ? "/dashboard" : "/public";
+  const backLabel = isOwner ? "Dashboard" : "Public";
+
   return (
-    <main className="min-h-screen bg-[#07090d] text-white">
-      <section className="mx-auto max-w-7xl px-6 py-8">
-        <Link href={isOwner ? "/dashboard" : "/public"} className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-400 transition hover:text-white">
-          <ArrowLeft size={15} aria-hidden />
-          {isOwner ? "Dashboard" : "Public collections"}
+    <AppShell authenticated={Boolean(user)} currentPath={isOwner ? "dashboard" : "public"}>
+      <section className="mx-auto w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
+        <Link href={backHref} className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground">
+          <ArrowLeft className="size-4" aria-hidden />
+          {backLabel}
         </Link>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_340px]">
+        <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <div className="mb-3 inline-flex items-center gap-2 border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                  {collection.isPublic ? <Globe2 size={14} aria-hidden /> : <Lock size={14} aria-hidden />}
+            <header className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-3">
+                <Badge className={cn(collection.isPublic ? "bg-emerald-500/10 text-emerald-300" : "bg-muted text-muted-foreground")}>
+                  {collection.isPublic ? <Globe2 aria-hidden /> : <Lock aria-hidden />}
                   {collection.isPublic ? "Public" : "Private"}
-                </div>
-                <h1 className="text-4xl font-semibold">{collection.name}</h1>
-                {collection.description ? <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-400">{collection.description}</p> : null}
-                <p className="mt-3 text-sm text-zinc-500">Curated by {collection.owner.name ?? "Untitled user"}</p>
+                </Badge>
+                <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                  {collection.name}
+                </h1>
+                {collection.description ? (
+                  <p className="max-w-2xl text-sm leading-7 text-muted-foreground">{collection.description}</p>
+                ) : null}
+                <p className="text-xs text-muted-foreground">
+                  Curated by {collection.owner.name ?? "Unknown"} · {collection.links.length} saved
+                </p>
               </div>
 
-              {isOwner ? (
-                <form action={toggleCollectionVisibilityAction}>
-                  <input type="hidden" name="collectionId" value={collection.id} />
-                  <input type="hidden" name="visibility" value={collection.isPublic ? "private" : "public"} />
-                  <button type="submit" className="inline-flex h-10 items-center gap-2 border border-white/10 px-4 text-sm font-semibold text-zinc-200 transition hover:border-white/30">
-                    {collection.isPublic ? <Lock size={15} aria-hidden /> : <Globe2 size={15} aria-hidden />}
-                    Make {collection.isPublic ? "private" : "public"}
-                  </button>
-                </form>
-              ) : null}
-            </div>
+              <div className="flex items-center gap-2">
+                {hasMappableLinks ? (
+                  <Link href={`/collections/${collection.id}/map`} className={buttonVariants({ variant: "outline" })}>
+                    <MapPin aria-hidden />
+                    Map view
+                  </Link>
+                ) : null}
+                {isOwner ? (
+                  <form action={toggleCollectionVisibilityAction}>
+                    <input type="hidden" name="collectionId" value={collection.id} />
+                    <input type="hidden" name="visibility" value={collection.isPublic ? "private" : "public"} />
+                    <button type="submit" className={buttonVariants({ variant: "outline" })}>
+                      {collection.isPublic ? <Lock aria-hidden /> : <Globe2 aria-hidden />}
+                      Make {collection.isPublic ? "private" : "public"}
+                    </button>
+                  </form>
+                ) : null}
+              </div>
+            </header>
 
             {query.error === "unsupported" ? (
-              <p className="border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-200">Only Instagram, TikTok, and Google Maps links are supported.</p>
+              <Alert variant="destructive">
+                <AlertDescription>Only Instagram, TikTok, and Google Maps links are supported.</AlertDescription>
+              </Alert>
             ) : null}
 
             {collection.links.length ? (
@@ -95,6 +118,7 @@ export default async function CollectionPage({ params, searchParams }: Collectio
                 {collection.links.map((link) => (
                   <SavedLinkCard
                     key={link.id}
+                    id={link.id}
                     title={link.title}
                     note={link.note}
                     url={link.url}
@@ -102,20 +126,32 @@ export default async function CollectionPage({ params, searchParams }: Collectio
                     thumbnailUrl={link.thumbnailUrl}
                     authorHandle={link.authorHandle}
                     createdAt={link.createdAt}
+                    canDelete={isOwner}
                   />
                 ))}
               </div>
             ) : (
-              <div className="border border-dashed border-white/15 bg-white/[0.03] p-8 text-zinc-400">
-                <h2 className="text-lg font-semibold text-white">No links saved here</h2>
-                <p className="mt-2 max-w-lg text-sm leading-6">Save an Instagram, TikTok, or Google Maps URL to start filling this collection.</p>
-              </div>
+              <Card className="flex flex-col items-center justify-center gap-3 p-12 text-center">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-sky-500 text-white shadow-lg shadow-cyan-500/30">
+                  <BookmarkPlus className="size-5" aria-hidden />
+                </span>
+                <h2 className="text-lg font-semibold text-foreground">No links saved here</h2>
+                <p className="max-w-sm text-sm leading-6 text-muted-foreground">
+                  {isOwner
+                    ? "Paste an Instagram, TikTok, or Maps URL on the right to add your first save."
+                    : "This collection is empty for now."}
+                </p>
+              </Card>
             )}
           </div>
 
-          {isOwner ? <SaveLinkForm collections={ownerCollections} selectedCollectionId={collection.id} /> : null}
+          {isOwner ? (
+            <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+              <SaveLinkForm collections={ownerCollections} selectedCollectionId={collection.id} />
+            </aside>
+          ) : null}
         </div>
       </section>
-    </main>
+    </AppShell>
   );
 }

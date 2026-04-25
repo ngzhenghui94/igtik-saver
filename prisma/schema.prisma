@@ -94,6 +94,8 @@ model SavedLink {
   note          String?
   thumbnailUrl  String?
   authorHandle  String?
+  latitude      Float?
+  longitude     Float?
   collectionId  String
   collection    Collection   @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   ownerId       String
@@ -103,4 +105,5 @@ model SavedLink {
 
   @@unique([collectionId, normalizedUrl])
   @@index([ownerId, createdAt])
+  @@index([platform, latitude, longitude])
 }

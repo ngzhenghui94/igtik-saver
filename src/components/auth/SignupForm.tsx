@@ -1,57 +1,42 @@
 import { UserPlus } from "lucide-react";
 
 import { signupAction } from "@/app/actions";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function SignupForm() {
   return (
-    <form action={signupAction} className="w-full max-w-md space-y-4 border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/30 backdrop-blur">
-      <div>
-        <label htmlFor="name" className="text-sm font-medium text-zinc-200">
-          Name
-        </label>
-        <input
-          id="name"
-          name="name"
-          required
-          minLength={2}
-          className="mt-2 h-11 w-full border border-white/10 bg-black/40 px-3 text-sm outline-none transition focus:border-sky-400"
-          placeholder="Daniel"
-        />
-      </div>
-      <div>
-        <label htmlFor="email" className="text-sm font-medium text-zinc-200">
-          Email
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          className="mt-2 h-11 w-full border border-white/10 bg-black/40 px-3 text-sm outline-none transition focus:border-sky-400"
-          placeholder="you@example.com"
-        />
-      </div>
-      <div>
-        <label htmlFor="password" className="text-sm font-medium text-zinc-200">
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          required
-          minLength={8}
-          className="mt-2 h-11 w-full border border-white/10 bg-black/40 px-3 text-sm outline-none transition focus:border-sky-400"
-          placeholder="At least 8 characters"
-        />
-      </div>
-      <button
-        type="submit"
-        className="inline-flex h-11 w-full items-center justify-center gap-2 bg-white px-4 text-sm font-semibold text-black transition hover:bg-zinc-200"
-      >
-        <UserPlus size={16} aria-hidden />
-        Create account
-      </button>
-    </form>
+    <Card>
+      <CardContent>
+        <form action={signupAction} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="name">Name</Label>
+            <Input id="name" name="name" required minLength={2} placeholder="Daniel" className="h-10" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" required placeholder="you@example.com" className="h-10" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              placeholder="At least 8 characters"
+              className="h-10"
+            />
+          </div>
+          <Button type="submit" size="lg" className="w-full">
+            <UserPlus />
+            Create account
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

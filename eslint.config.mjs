@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated shadcn-map registry files use patterns outside this app's lint profile.
+    "src/components/ui/map.tsx",
+    "src/components/ui/place-autocomplete.tsx",
   ]),
 ]);
 

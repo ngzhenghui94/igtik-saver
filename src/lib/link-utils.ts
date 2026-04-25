@@ -115,6 +115,50 @@ export function socialHandleFromUrl(value: string, platform: LinkPlatform) {
   return null;
 }
 
+export function savedLinkReferenceFromUrl(value: string, platform: LinkPlatform) {
+  const url = safeUrl(value);
+
+  if (!url) {
+    return null;
+  }
+
+  const segments = pathSegments(url);
+
+  if (platform === LinkPlatform.INSTAGRAM) {
+    const [first, second] = segments;
+    const lowerFirst = first?.toLowerCase();
+
+    if ((lowerFirst === "p" || lowerFirst === "reel" || lowerFirst === "reels" || lowerFirst === "tv") && second) {
+      return compactReference(second);
+    }
+
+    if (lowerFirst === "stories" && second) {
+      return `@${second.replace(/^@/, "")}`;
+    }
+
+    return socialHandleFromUrl(value, platform);
+  }
+
+  if (platform === LinkPlatform.TIKTOK) {
+    const handle = socialHandleFromUrl(value, platform);
+    const videoIndex = segments.findIndex((segment) => segment.toLowerCase() === "video");
+    const videoId = videoIndex >= 0 ? segments[videoIndex + 1] : null;
+
+    if (handle && videoId) {
+      return `${handle} / ${compactReference(videoId, 8)}`;
+    }
+
+    if (handle) {
+      return handle;
+    }
+
+    const shortLinkId = segments.find(Boolean);
+    return shortLinkId ? compactReference(shortLinkId) : null;
+  }
+
+  return googleMapsTitleFromUrl(url);
+}
+
 export function savedLinkKindFromUrl(value: string, platform: LinkPlatform) {
   const url = safeUrl(value);
 
@@ -127,7 +171,7 @@ export function savedLinkKindFromUrl(value: string, platform: LinkPlatform) {
   }
 
   if (platform === LinkPlatform.TIKTOK) {
-    return pathSegments(url).includes("video") ? "Video" : "TikTok";
+    return pathSegments(url).includes("video") || pathSegments(url).length > 0 ? "Video" : "TikTok";
   }
 
   return instagramKindFromUrl(url) ?? "Instagram";
@@ -135,6 +179,80 @@ export function savedLinkKindFromUrl(value: string, platform: LinkPlatform) {
 
 export function isGenericSavedTitle(title: string, platform: LinkPlatform) {
   return title.trim().toLowerCase() === `${platformLabel(platform)} save`.toLowerCase();
+}
+
+export type Coordinates = { latitude: number; longitude: number };
+
+const coordinatePattern = /^-?\d{1,3}(\.\d+)?$/;
+
+export function extractCoordinates(value: string): Coordinates | null {
+  const url = safeUrl(value);
+
+  if (!url) {
+    return null;
+  }
+
+  const atMatch = url.pathname.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+
+  if (atMatch) {
+    return toCoordinates(atMatch[1], atMatch[2]);
+  }
+
+  const llParam = url.searchParams.get("ll");
+
+  if (llParam) {
+    const [lat, lng] = llParam.split(",");
+    const coords = toCoordinates(lat, lng);
+    if (coords) return coords;
+  }
+
+  const queryParam = url.searchParams.get("q") ?? url.searchParams.get("query");
+
+  if (queryParam) {
+    const [lat, lng] = queryParam.split(",");
+
+    if (coordinatePattern.test(lat?.trim() ?? "") && coordinatePattern.test(lng?.trim() ?? "")) {
+      const coords = toCoordinates(lat, lng);
+      if (coords) return coords;
+    }
+  }
+
+  const destinationParam = url.searchParams.get("destination") ?? url.searchParams.get("daddr");
+
+  if (destinationParam) {
+    const [lat, lng] = destinationParam.split(",");
+
+    if (coordinatePattern.test(lat?.trim() ?? "") && coordinatePattern.test(lng?.trim() ?? "")) {
+      const coords = toCoordinates(lat, lng);
+      if (coords) return coords;
+    }
+  }
+
+  for (const segment of pathSegments(url)) {
+    const dataMatch = segment.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+    if (dataMatch) {
+      return toCoordinates(dataMatch[1], dataMatch[2]);
+    }
+  }
+
+  return null;
+}
+
+function toCoordinates(latRaw: string | undefined, lngRaw: string | undefined): Coordinates | null {
+  if (!latRaw || !lngRaw) return null;
+
+  const latitude = Number(latRaw);
+  const longitude = Number(lngRaw);
+
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    return null;
+  }
+
+  return { latitude, longitude };
 }
 
 function isGoogleMapsUrl(url: URL, host: string) {
@@ -210,4 +328,14 @@ function decodeUrlLabel(value: string) {
   } catch {
     return value.replace(/\+/g, " ").replace(/\s+/g, " ").trim();
   }
+}
+
+function compactReference(value: string, maxLength = 12) {
+  const label = decodeUrlLabel(value).replace(/^@/, "");
+
+  if (label.length <= maxLength) {
+    return label;
+  }
+
+  return `${label.slice(0, maxLength)}...`;
 }

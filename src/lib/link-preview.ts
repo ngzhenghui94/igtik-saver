@@ -6,6 +6,7 @@ type LinkPreview = {
   title: string | null;
   thumbnailUrl: string | null;
   authorHandle: string | null;
+  resolvedUrl: string | null;
 };
 
 const maxPreviewBytes = 512_000;
@@ -29,15 +30,17 @@ export async function fetchLinkPreview(value: string, platform: LinkPlatform): P
         },
       });
 
+      const finalUrl = response.url || value;
+
       if (!response.ok) {
         return {
           title: fallbackTitle,
           thumbnailUrl: null,
           authorHandle: fallbackHandle,
+          resolvedUrl: finalUrl !== value ? finalUrl : null,
         };
       }
 
-      const finalUrl = response.url || value;
       const contentType = response.headers.get("content-type") ?? "";
 
       if (!contentType.toLowerCase().includes("text/html")) {
@@ -45,6 +48,7 @@ export async function fetchLinkPreview(value: string, platform: LinkPlatform): P
           title: fallbackTitle ?? titleFromSavedUrl(finalUrl, platform),
           thumbnailUrl: null,
           authorHandle: fallbackHandle ?? socialHandleFromUrl(finalUrl, platform),
+          resolvedUrl: finalUrl !== value ? finalUrl : null,
         };
       }
 
@@ -55,6 +59,7 @@ export async function fetchLinkPreview(value: string, platform: LinkPlatform): P
         title: metadata.title ?? fallbackTitle ?? titleFromSavedUrl(finalUrl, platform),
         thumbnailUrl: metadata.thumbnailUrl,
         authorHandle: metadata.authorHandle ?? fallbackHandle ?? socialHandleFromUrl(finalUrl, platform),
+        resolvedUrl: finalUrl !== value ? finalUrl : null,
       };
     } finally {
       clearTimeout(timeout);
@@ -64,6 +69,7 @@ export async function fetchLinkPreview(value: string, platform: LinkPlatform): P
       title: fallbackTitle,
       thumbnailUrl: null,
       authorHandle: fallbackHandle,
+      resolvedUrl: null,
     };
   }
 }
@@ -120,6 +126,7 @@ function extractHtmlMetadata(html: string, baseUrl: string, platform: LinkPlatfo
     title: cleanTitle(rawTitle ? decodeHtml(rawTitle) : null, platform),
     thumbnailUrl: resolveHttpUrl(rawImage, baseUrl),
     authorHandle: cleanAuthor(rawAuthor),
+    resolvedUrl: null,
   };
 }
 

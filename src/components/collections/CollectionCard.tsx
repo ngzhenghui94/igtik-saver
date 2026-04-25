@@ -1,7 +1,12 @@
 import Link from "next/link";
-import { Bookmark, Camera, Globe2, Lock, MapPin, Music2 } from "lucide-react";
+import { ArrowUpRight, Camera, Globe2, Lock, MapPin, Music2, Sparkles, Trash2 } from "lucide-react";
 
 import type { LinkPlatform } from "@/generated/prisma/enums";
+
+import { deleteCollectionAction } from "@/app/actions";
+import { Badge } from "@/components/ui/badge";
+import { isGenericSavedTitle, savedLinkReferenceFromUrl, titleFromSavedUrl } from "@/lib/link-utils";
+import { cn } from "@/lib/utils";
 
 type CollectionCardProps = {
   id: string;
@@ -11,65 +16,116 @@ type CollectionCardProps = {
   links: {
     id: string;
     title: string;
+    url: string;
     platform: LinkPlatform;
     thumbnailUrl: string | null;
   }[];
   count: number;
+  canDelete?: boolean;
 };
 
-export function CollectionCard({ id, name, description, isPublic, links, count }: CollectionCardProps) {
+export function CollectionCard({ id, name, description, isPublic, links, count, canDelete = false }: CollectionCardProps) {
   const tiles = [...links.slice(0, 4)];
+  const platformGradient = gradientForPlatform(tiles[0]?.platform);
 
   return (
-    <Link
-      href={`/collections/${id}`}
-      className="group block overflow-hidden border border-white/10 bg-white/[0.04] transition hover:-translate-y-1 hover:border-white/25"
-    >
-      <div className="grid aspect-square grid-cols-2 grid-rows-2 gap-px bg-white/10">
-        {Array.from({ length: 4 }).map((_, index) => {
-          const link = tiles[index];
-          const imageUrl = getSafeImageUrl(link?.thumbnailUrl ?? null);
-          const Icon = link?.platform === "INSTAGRAM" ? Camera : link?.platform === "TIKTOK" ? Music2 : MapPin;
+    <article className="group/card relative flex flex-col overflow-hidden rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10 transition-all hover:-translate-y-0.5 hover:ring-foreground/20">
+      {canDelete ? (
+        <form action={deleteCollectionAction} className="absolute right-3 top-3 z-10">
+          <input type="hidden" name="collectionId" value={id} />
+          <button
+            type="submit"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background/70 text-destructive opacity-0 backdrop-blur transition-all group-hover/card:opacity-100 hover:border-destructive/50 hover:bg-destructive/15 focus:opacity-100"
+            aria-label={`Delete ${name}`}
+            title="Delete"
+          >
+            <Trash2 className="size-3.5" aria-hidden />
+          </button>
+        </form>
+      ) : null}
 
-          return (
-            <div
-              key={link?.id ?? index}
-              className={`relative flex items-center justify-center overflow-hidden ${
-                imageUrl
-                  ? "bg-cover bg-center"
-                  : "bg-[radial-gradient(circle_at_30%_20%,rgba(56,189,248,0.35),transparent_26%),linear-gradient(135deg,rgba(244,63,94,0.55),rgba(20,184,166,0.28),rgba(24,24,27,0.9))]"
-              }`}
-              style={imageUrl ? { backgroundImage: `linear-gradient(180deg, rgba(7, 9, 13, 0.08), rgba(7, 9, 13, 0.72)), url("${cssUrl(imageUrl)}")` } : undefined}
-            >
-              {link ? (
-                <>
-                  <Icon className="absolute left-3 top-3 text-white/75 drop-shadow" size={15} aria-hidden />
-                  <span className="line-clamp-3 px-4 text-center text-xs font-semibold uppercase tracking-wide text-white drop-shadow">
-                    {link.title}
-                  </span>
-                </>
-              ) : (
-                <Bookmark className="text-white/35" size={26} aria-hidden />
-              )}
-              <div className="absolute inset-0 bg-black/20" />
+      <Link href={`/collections/${id}`} className="block" aria-label={`Open ${name}`}>
+        <div className={cn("relative aspect-square overflow-hidden bg-gradient-to-br", platformGradient)}>
+          {tiles.length === 0 ? (
+            <div className="flex h-full w-full items-center justify-center">
+              <Sparkles className="size-8 text-foreground/40" aria-hidden />
             </div>
-          );
-        })}
-      </div>
-      <div className="space-y-3 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-white">{name}</h2>
-            <p className="mt-1 text-sm text-zinc-400">{count} saved links</p>
-          </div>
-          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center border border-white/10 bg-black/30 text-zinc-300">
-            {isPublic ? <Globe2 size={16} aria-label="Public" /> : <Lock size={16} aria-label="Private" />}
-          </span>
+          ) : (
+            <div className="grid h-full grid-cols-2 grid-rows-2 gap-px bg-foreground/5">
+              {Array.from({ length: 4 }).map((_, index) => {
+                const link = tiles[index];
+                const imageUrl = getSafeImageUrl(link?.thumbnailUrl ?? null);
+                const Icon = link?.platform === "INSTAGRAM" ? Camera : link?.platform === "TIKTOK" ? Music2 : MapPin;
+                const displayTitle =
+                  link && isGenericSavedTitle(link.title, link.platform)
+                    ? titleFromSavedUrl(link.url, link.platform) ??
+                      savedLinkReferenceFromUrl(link.url, link.platform) ??
+                      link.title
+                    : link?.title;
+
+                return (
+                  <div
+                    key={link?.id ?? index}
+                    className={cn(
+                      "relative flex items-center justify-center overflow-hidden",
+                      imageUrl ? "bg-cover bg-center" : "bg-foreground/[0.04] backdrop-blur-sm",
+                    )}
+                    style={
+                      imageUrl
+                        ? {
+                            backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.55)), url("${cssUrl(imageUrl)}")`,
+                          }
+                        : undefined
+                    }
+                  >
+                    {link ? (
+                      <>
+                        <Icon className="absolute left-2.5 top-2.5 size-3 text-white/85 drop-shadow" aria-hidden />
+                        <span className="line-clamp-3 px-3 text-center text-[11px] font-semibold leading-snug text-white/90 drop-shadow">
+                          {displayTitle}
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <Badge
+            variant="secondary"
+            className="absolute left-3 top-3 bg-background/65 text-[10px] uppercase tracking-wider text-foreground backdrop-blur"
+          >
+            {isPublic ? <Globe2 aria-hidden /> : <Lock aria-hidden />}
+            {isPublic ? "Public" : "Private"}
+          </Badge>
         </div>
-        {description ? <p className="line-clamp-2 text-sm leading-6 text-zinc-400">{description}</p> : null}
-      </div>
-    </Link>
+
+        <div className="space-y-1.5 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <h2 className="font-heading text-base font-semibold text-foreground">{name}</h2>
+            <ArrowUpRight
+              className="size-4 shrink-0 text-muted-foreground transition group-hover/card:-translate-y-0.5 group-hover/card:translate-x-0.5 group-hover/card:text-foreground"
+              aria-hidden
+            />
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {count} {count === 1 ? "link" : "links"}
+          </div>
+          {description ? (
+            <p className="line-clamp-2 pt-1 text-sm leading-6 text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+      </Link>
+    </article>
   );
+}
+
+function gradientForPlatform(platform?: LinkPlatform) {
+  if (platform === "INSTAGRAM") return "from-pink-500/40 via-rose-400/25 to-amber-300/20";
+  if (platform === "TIKTOK") return "from-cyan-400/40 via-fuchsia-400/25 to-rose-400/20";
+  if (platform === "GOOGLE_MAPS") return "from-emerald-400/40 via-teal-400/25 to-sky-300/20";
+  return "from-violet-500/30 via-fuchsia-500/20 to-pink-400/20";
 }
 
 function getSafeImageUrl(value: string | null) {
