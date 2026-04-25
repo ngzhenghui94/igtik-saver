@@ -9,10 +9,25 @@ export const signupSchema = credentialsSchema.extend({
   name: z.string().min(2).max(80).trim(),
 });
 
+export const accountPasswordSchema = z
+  .object({
+    password: z.string().min(8).max(128),
+    confirmPassword: z.string().min(8).max(128),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
 export const collectionSchema = z.object({
   name: z.string().min(1).max(80).trim(),
   description: z.string().max(240).trim().optional(),
   visibility: z.enum(["private", "public"]),
+});
+
+export const collectionRenameSchema = z.object({
+  collectionId: z.string().min(1),
+  name: z.string().min(1).max(80).trim(),
 });
 
 export const savedLinkSchema = z.object({

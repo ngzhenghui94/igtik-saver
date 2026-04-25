@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Bookmark, Globe2, LayoutGrid, LogIn, MapPin } from "lucide-react";
+import { Bookmark, Globe2, LayoutGrid, LogIn, MapPin, UserCircle } from "lucide-react";
 
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { buttonVariants } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 type AppShellProps = {
   children: ReactNode;
   authenticated: boolean;
-  currentPath?: "dashboard" | "public" | "map" | "other";
+  currentPath?: "account" | "dashboard" | "public" | "map" | "other";
 };
 
 export function AppShell({ children, authenticated, currentPath = "other" }: AppShellProps) {
@@ -45,6 +45,11 @@ export function AppShell({ children, authenticated, currentPath = "other" }: App
             >
               Map
             </NavLink>
+            {authenticated ? (
+              <NavLink href="/account" active={currentPath === "account"} icon={<UserCircle />}>
+                Account
+              </NavLink>
+            ) : null}
             {authenticated ? (
               <SignOutButton />
             ) : (

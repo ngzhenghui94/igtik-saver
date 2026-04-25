@@ -28,12 +28,12 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
 
     setLoading(false);
 
-    if (result?.ok) {
-      window.location.href = result.url ?? "/dashboard";
+    if (result?.ok && !result.error && result.url) {
+      window.location.href = result.url;
       return;
     }
 
-    setError("That email and password did not match.");
+    setError("That email and password did not match. Google-only accounts need a password created from Account first.");
   }
 
   return (

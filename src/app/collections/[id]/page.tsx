@@ -1,15 +1,27 @@
 import Link from "next/link";
-import { ArrowLeft, BookmarkPlus, Globe2, Lock, MapPin } from "lucide-react";
+import { ArrowLeft, BookmarkPlus, Globe2, Lock, MapPin, Pencil } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 
-import { toggleCollectionVisibilityAction } from "@/app/actions";
+import { renameCollectionAction, toggleCollectionVisibilityAction } from "@/app/actions";
 import { AppShell } from "@/components/AppShell";
 import { SavedLinkCard } from "@/components/collections/SavedLinkCard";
 import { SaveLinkForm } from "@/components/collections/SaveLinkForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { getCurrentUser } from "@/lib/current-user";
 import { LinkPlatform } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
@@ -76,9 +88,12 @@ export default async function CollectionPage({ params, searchParams }: Collectio
                   {collection.isPublic ? <Globe2 aria-hidden /> : <Lock aria-hidden />}
                   {collection.isPublic ? "Public" : "Private"}
                 </Badge>
-                <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                  {collection.name}
-                </h1>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                    {collection.name}
+                  </h1>
+                  {isOwner ? <RenameCollectionDialog id={collection.id} name={collection.name} /> : null}
+                </div>
                 {collection.description ? (
                   <p className="max-w-2xl text-sm leading-7 text-muted-foreground">{collection.description}</p>
                 ) : null}
@@ -110,6 +125,11 @@ export default async function CollectionPage({ params, searchParams }: Collectio
             {query.error === "unsupported" ? (
               <Alert variant="destructive">
                 <AlertDescription>Only Instagram, TikTok, and Google Maps links are supported.</AlertDescription>
+              </Alert>
+            ) : null}
+            {query.error === "collection_name" ? (
+              <Alert variant="destructive">
+                <AlertDescription>Use a collection name between 1 and 80 characters.</AlertDescription>
               </Alert>
             ) : null}
 
@@ -153,5 +173,44 @@ export default async function CollectionPage({ params, searchParams }: Collectio
         </div>
       </section>
     </AppShell>
+  );
+}
+
+function RenameCollectionDialog({ id, name }: { id: string; name: string }) {
+  return (
+    <Dialog>
+      <DialogTrigger render={<Button variant="outline" size="sm" />}>
+        <Pencil data-icon="inline-start" />
+        Edit name
+      </DialogTrigger>
+      <DialogContent>
+        <form action={renameCollectionAction} className="flex flex-col gap-4">
+          <input type="hidden" name="collectionId" value={id} />
+          <DialogHeader>
+            <DialogTitle>Edit collection name</DialogTitle>
+            <DialogDescription>Rename this collection everywhere it appears in your dashboard and maps.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`collection-name-${id}`}>Name</Label>
+            <Input
+              id={`collection-name-${id}`}
+              name="name"
+              required
+              maxLength={80}
+              defaultValue={name}
+              autoComplete="off"
+              className="h-10"
+            />
+          </div>
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>Cancel</DialogClose>
+            <Button type="submit">
+              <Pencil data-icon="inline-start" />
+              Save name
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

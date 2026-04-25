@@ -23,7 +23,7 @@ export function CreateCollectionForm() {
               name="name"
               required
               maxLength={80}
-              placeholder="Food, Vietnam, sermons…"
+              placeholder="Cafes, Food Places, Trips"
               aria-label="Collection name"
               className="h-10"
             />

@@ -9,7 +9,13 @@ import { LinkPlatform } from "@/generated/prisma/enums";
 import { fetchLinkPreview } from "@/lib/link-preview";
 import { prisma } from "@/lib/prisma";
 import { uniqueSlug } from "@/lib/slug";
-import { collectionSchema, savedLinkSchema, signupSchema } from "@/lib/validation";
+import {
+  accountPasswordSchema,
+  collectionRenameSchema,
+  collectionSchema,
+  savedLinkSchema,
+  signupSchema,
+} from "@/lib/validation";
 import { getCurrentUser } from "@/lib/current-user";
 
 function value(formData: FormData, key: string) {
@@ -50,6 +56,61 @@ export async function signupAction(formData: FormData) {
   redirect("/login?created=1");
 }
 
+export async function createAccountPasswordAction(formData: FormData) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const parsed = accountPasswordSchema.safeParse({
+    password: value(formData, "password"),
+    confirmPassword: value(formData, "confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    redirect("/account?error=password");
+  }
+
+  const accountUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: {
+      id: true,
+      email: true,
+      passwordHash: true,
+    },
+  });
+
+  if (!accountUser) {
+    redirect("/login");
+  }
+
+  if (!accountUser.email) {
+    redirect("/account?error=email");
+  }
+
+  if (accountUser.passwordHash) {
+    redirect("/account?error=password_exists");
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.password, 12);
+
+  const updated = await prisma.user.updateMany({
+    where: {
+      id: accountUser.id,
+      passwordHash: null,
+    },
+    data: { passwordHash },
+  });
+
+  if (updated.count === 0) {
+    redirect("/account?error=password_exists");
+  }
+
+  revalidatePath("/account");
+  redirect("/account?password=created");
+}
+
 export async function createCollectionAction(formData: FormData) {
   const user = await getCurrentUser();
 
@@ -79,6 +140,47 @@ export async function createCollectionAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/public");
+}
+
+export async function renameCollectionAction(formData: FormData) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const id = value(formData, "collectionId");
+  const parsed = collectionRenameSchema.safeParse({
+    collectionId: id,
+    name: value(formData, "name"),
+  });
+
+  if (!parsed.success) {
+    redirect(id ? `/collections/${id}?error=collection_name` : "/dashboard?error=collection");
+  }
+
+  const updated = await prisma.collection.updateMany({
+    where: {
+      id: parsed.data.collectionId,
+      ownerId: user.id,
+    },
+    data: {
+      name: parsed.data.name,
+      slug: uniqueSlug(parsed.data.name),
+    },
+  });
+
+  if (updated.count === 0) {
+    redirect("/dashboard?error=collection_missing");
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/map");
+  revalidatePath(`/collections/${parsed.data.collectionId}`);
+  revalidatePath(`/collections/${parsed.data.collectionId}/map`);
+  revalidatePath("/public");
+  revalidatePath("/public/map");
+  redirect(`/collections/${parsed.data.collectionId}`);
 }
 
 export async function saveLinkAction(formData: FormData) {
